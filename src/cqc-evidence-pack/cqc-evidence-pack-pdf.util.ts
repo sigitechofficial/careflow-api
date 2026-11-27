@@ -209,6 +209,10 @@ export function attentionLines(pack: EvidencePack): string[] {
     lines.push(
       `None of the ${gaps.length} quality statements has current evidence yet.`,
     );
+  } else if (gaps.length > 3) {
+    lines.push(
+      `${gaps.length} statements with no current evidence (marked None in the contents).`,
+    );
   } else if (gaps.length) {
     lines.push(
       `${plural(gaps.length, 'statement')} with no current evidence: ${gaps.map((g) => `${g.number} ${g.title}`).join('; ')}.`,
@@ -218,7 +222,11 @@ export function attentionLines(pack: EvidencePack): string[] {
   for (const s of pack.statements)
     for (const e of s.evidence)
       if (reviewOverdue(e, now)) overdueEvidence.set(e.id, e.title);
-  if (overdueEvidence.size) {
+  if (overdueEvidence.size > 3) {
+    lines.push(
+      `${overdueEvidence.size} pieces of evidence past their review date.`,
+    );
+  } else if (overdueEvidence.size) {
     lines.push(
       `Evidence past its review date: ${[...overdueEvidence.values()].join('; ')}.`,
     );
@@ -228,7 +236,9 @@ export function attentionLines(pack: EvidencePack): string[] {
     for (const p of s.policies)
       if (p.reviewOverdue)
         overduePolicies.set(p.policyId, `${p.reference} ${p.title}`);
-  if (overduePolicies.size) {
+  if (overduePolicies.size > 3) {
+    lines.push(`${overduePolicies.size} policies past their review date.`);
+  } else if (overduePolicies.size) {
     lines.push(
       `Policies past their review date: ${[...overduePolicies.values()].join('; ')}.`,
     );
@@ -354,22 +364,6 @@ function renderPack(
       }
       doc.y = y + (sub ? 46 : 28);
     };
-    /** Wrapped text at x, leaving the cursor `gap` below it. */
-    const flow = (
-      s: string,
-      x: number,
-      width: number,
-      bold: boolean,
-      size: number,
-      colour: string,
-      gap: number,
-    ) => {
-      const y0 = doc.y;
-      const h = heightOf(s, bold, size, width);
-      font(bold, size, colour);
-      put(s, x, y0, { width, lineGap: 1.5 });
-      doc.y = y0 + h + gap;
-    };
     /** A small capital label above a block, e.g. EVIDENCE. */
     const label = (text: string, need = 50) => {
       ensure(need);
@@ -432,7 +426,8 @@ function renderPack(
     };
     /**
      * A bordered table: a shaded header row, then one row per item. Column widths are shares of the page
-     * width; a cell can have a smaller second line (`sub`). The header repeats after a page break.
+     * width and each column has its own alignment; a cell can have a smaller second line (`sub`). A
+     * `{ group }` row is a shaded heading across the table. The header repeats after a page break.
      */
     type GridCell = {
       text: string;
@@ -440,11 +435,16 @@ function renderPack(
       bold?: boolean;
       colour?: string;
     };
+    type GridRow = GridCell[] | { group: string };
     const grid = (
-      cols: Array<{ title: string; w: number }>,
-      rows: GridCell[][],
+      cols: Array<{
+        title: string;
+        w: number;
+        align?: 'left' | 'center' | 'right';
+      }>,
+      rows: GridRow[],
     ) => {
-      const pad = 5;
+      const pad = 6;
       const xs: number[] = [];
       let acc = L;
       for (const c of cols) {
@@ -452,9 +452,10 @@ function renderPack(
         acc += c.w * W;
       }
       const widths = cols.map((c) => c.w * W - 2 * pad);
-      const lines = (y: number, h: number) => {
+      const align = (i: number) => cols[i].align ?? 'left';
+      const lines = (y: number, h: number, inner = true) => {
         doc.lineWidth(0.5).strokeColor(C.line);
-        for (const x of [...xs, R])
+        for (const x of inner ? [...xs, R] : [L, R])
           doc
             .moveTo(x, y)
             .lineTo(x, y + h)
@@ -466,7 +467,7 @@ function renderPack(
       };
       const head = () => {
         const y = doc.y;
-        doc.rect(L, y, W, 18).fill(C.soft);
+        doc.rect(L, y, W, 20).fill(C.soft);
         doc
           .lineWidth(0.5)
           .strokeColor(C.line)
@@ -475,22 +476,36 @@ function renderPack(
           .stroke();
         font(true, 7, C.muted);
         cols.forEach((c, i) =>
-          put(c.title.toUpperCase(), xs[i] + pad, y + 6, {
-            characterSpacing: 0.5,
+          put(c.title.toUpperCase(), xs[i] + pad, y + 7, {
+            characterSpacing: 0.4,
             width: widths[i],
             height: 9,
             ellipsis: true,
+            align: align(i),
           }),
         );
-        lines(y, 18);
-        doc.y = y + 18;
+        lines(y, 20);
+        doc.y = y + 20;
       };
       const cellH = (c: GridCell, w: number) =>
         heightOf(c.text, !!c.bold, 9, w) +
         (c.sub ? heightOf(c.sub, false, 8, w) + 2 : 0);
-      ensure(18 + 24);
+      ensure(20 + 26);
       head();
       for (const row of rows) {
+        if (!Array.isArray(row)) {
+          if (doc.y + 18 + 22 > bottom()) {
+            doc.addPage();
+            head();
+          }
+          const y = doc.y;
+          doc.rect(L, y, W, 18).fill(C.brandSoft);
+          font(true, 8.5, C.brand);
+          put(row.group, L + pad, y + 5, { width: W - 2 * pad });
+          lines(y, 18, false);
+          doc.y = y + 18;
+          continue;
+        }
         const h =
           Math.max(...row.map((c, i) => cellH(c, widths[i])), 10) + 2 * pad;
         if (doc.y + h > bottom()) {
@@ -500,7 +515,11 @@ function renderPack(
         const y = doc.y;
         row.forEach((c, i) => {
           font(!!c.bold, 9, c.colour ?? C.ink);
-          put(c.text, xs[i] + pad, y + pad, { width: widths[i], lineGap: 1.5 });
+          put(c.text, xs[i] + pad, y + pad, {
+            width: widths[i],
+            lineGap: 1.5,
+            align: align(i),
+          });
           if (c.sub) {
             // Measure first: heightOf sets the font, so the sub-line's font comes after it.
             const subY = y + pad + heightOf(c.text, !!c.bold, 9, widths[i]) + 2;
@@ -508,27 +527,14 @@ function renderPack(
             put(c.sub, xs[i] + pad, subY, {
               width: widths[i],
               lineGap: 1.5,
+              align: align(i),
             });
           }
         });
         lines(y, h);
         doc.y = y + h;
       }
-      doc.y += 10;
-    };
-
-    /** A table header row. */
-    const tableHead = (cols: Array<[string, number, number?]>) => {
-      ensure(40);
-      const y = doc.y;
-      doc.rect(L, y, W, 20).fill(C.soft);
-      font(true, 7.5, C.muted);
-      for (const [t, x, w] of cols)
-        put(t.toUpperCase(), x, y + 7, {
-          characterSpacing: 0.5,
-          ...(w ? { width: w } : {}),
-        });
-      doc.y = y + 20;
+      doc.y += 12;
     };
 
     // ─── Cover ────────────────────────────────────────────────────────────
@@ -609,100 +615,78 @@ function renderPack(
           gap: 5,
         },
         {
-          text: '- Each CQC quality statement has three short tables: Evidence (what the service keeps), Policies (published policies behind it) and Mock inspection (how the service scored itself, and actions still open).',
+          text: '- Each quality statement has three tables: Evidence, Policies and Mock inspection.',
         },
-        ...(pack.service || pack.keyData
+        {
+          text: '- Mock scores (1 to 4) are the service checking itself. They are not CQC ratings.',
+          gap: pack.format === 'zip' && pack.includesFiles ? 3 : 0,
+        },
+        ...(pack.format === 'zip' && pack.includesFiles
           ? [
               {
-                text: '- About the service (next page) gives the CQC registration and key figures from the last 12 months: counts only, no names.',
+                text: '- Attached files are in the evidence-files folder.',
+                gap: 0,
               },
             ]
           : []),
-        {
-          text: `- Mock inspections are the service checking itself on the CQC scale: 1 significant shortfalls, 2 some shortfalls, 3 good standard, 4 exceptional standard. They are not CQC ratings.`,
-        },
-        {
-          text:
-            '- Survey figures are totals only: no individual answers, and nothing broken down below 5 responses.' +
-            (pack.format === 'zip' && pack.includesFiles
-              ? ' Attached files are in the evidence-files folder, named under each piece of evidence.'
-              : ''),
-          gap: 0,
-        },
       ],
       { fill: C.brandSoft, edge: C.brand },
     );
 
     // Summary by key question.
     heading('Summary by key question', undefined, 170);
-    const sc = {
-      kq: L + 10,
-      bar: L + 122,
-      n: L + 222,
-      pol: L + 280,
-      act: L + 335,
-      mock: R - 112,
-    };
-    tableHead([
-      ['Key question', sc.kq],
-      ['Statements with evidence', sc.bar, 150],
-      ['Policies', sc.pol],
-      ['Actions', sc.act],
-      ['Latest mock rating', sc.mock, 112],
-    ]);
-    for (const g of groups) {
-      const rowH = 30;
-      ensure(rowH);
-      const ry = doc.y;
-      const n = g.statements.filter((s) => s.evidence.length).length;
-      font(true, 10.5, C.ink);
-      put(g.title, sc.kq, ry + 10, { width: 108, height: 13, ellipsis: true });
-      doc.roundedRect(sc.bar, ry + 13, 88, 6, 3).fill(C.line);
-      const pct = n / g.statements.length;
-      if (pct > 0)
-        doc
-          .roundedRect(sc.bar, ry + 13, Math.max(6, 88 * pct), 6, 3)
-          .fill(pct === 1 ? C.brand : '#d97706');
-      font(true, 10, C.ink);
-      put(`${n} of ${g.statements.length}`, sc.n, ry + 10);
-      font(false, 10, C.body);
-      put(
-        pack.includesPolicies
-          ? String(
-              new Set(
-                g.statements.flatMap((s) => s.policies.map((p) => p.policyId)),
-              ).size,
-            )
-          : '-',
-        sc.pol,
-        ry + 10,
-      );
-      const acts = g.statements.reduce((k, s) => k + s.actions.length, 0);
-      put(String(acts), sc.act, ry + 10);
-      const kq = pack.latestInspection?.keyQuestions.find(
-        (k) => k.code === g.code,
-      );
-      if (kq?.rating)
-        pill(
-          RATING_LABELS[kq.rating],
-          sc.mock,
-          ry + 7,
-          RATING_COLOURS[kq.rating],
+    grid(
+      [
+        { title: 'Key question', w: 0.26 },
+        { title: 'With evidence', w: 0.24, align: 'center' },
+        { title: 'Policies', w: 0.14, align: 'center' },
+        { title: 'Open actions', w: 0.14, align: 'center' },
+        { title: 'Latest mock rating', w: 0.22, align: 'center' },
+      ],
+      groups.map((g) => {
+        const n = g.statements.filter((s) => s.evidence.length).length;
+        const kq = pack.latestInspection?.keyQuestions.find(
+          (k) => k.code === g.code,
         );
-      else {
-        font(false, 9.5, C.muted);
-        put('Not rated', sc.mock, ry + 10);
-      }
-      rule(ry + rowH);
-      doc.y = ry + rowH;
-    }
-    doc.y += 8;
+        return [
+          { text: g.title, bold: true },
+          {
+            text: `${n} of ${g.statements.length}`,
+            bold: true,
+            colour: n === g.statements.length ? C.brand : C.amber,
+          },
+          {
+            text: pack.includesPolicies
+              ? String(
+                  new Set(
+                    g.statements.flatMap((s) =>
+                      s.policies.map((p) => p.policyId),
+                    ),
+                  ).size,
+                )
+              : '-',
+          },
+          {
+            text: String(
+              g.statements.reduce((k, s) => k + s.actions.length, 0),
+            ),
+          },
+          kq?.rating
+            ? {
+                text: RATING_LABELS[kq.rating],
+                bold: true,
+                colour: RATING_COLOURS[kq.rating],
+              }
+            : { text: 'Not rated', colour: C.muted },
+        ];
+      }),
+    );
     font(false, 8.5, C.muted);
     const ratingNote = pack.latestInspection
-      ? `Latest mock rating: from the mock inspection ${mockSource(pack.latestInspection)}${pack.latestInspection.overall ? `; overall ${RATING_LABELS[pack.latestInspection.overall]}` : ''}.`
+      ? `Latest mock rating: ${mockSource(pack.latestInspection)}.`
       : 'Latest mock rating: no mock inspection has been completed yet.';
-    put(ratingNote, L, doc.y, { width: W, lineGap: 1.5 });
-    doc.y += heightOf(ratingNote, false, 8.5, W) + 12;
+    put(ratingNote, L, doc.y - 4, { width: W, lineGap: 1.5 });
+    doc.y += heightOf(ratingNote, false, 8.5, W) + 10;
 
     const attention = attentionLines(pack);
     if (attention.length) {
@@ -745,6 +729,7 @@ function renderPack(
           120,
         );
         doc.y += 6;
+        doc.y += 4;
         label(
           svc.locations.length === 1
             ? 'Registered location'
@@ -760,62 +745,54 @@ function renderPack(
           );
           doc.y += 18;
         }
-        for (const loc of svc.locations) {
-          ensure(70);
-          flow(loc.name, L, W, true, 10.5, C.ink, 3);
-          facts(
+        if (svc.locations.length)
+          grid(
             [
-              ['CQC location ID', loc.cqcLocationId ?? ''],
-              ['Address', loc.address ?? ''],
-              ['Contact', loc.contact ?? ''],
-              [
-                'Registered manager',
-                loc.registeredManagers.length
+              { title: 'Location', w: 0.42 },
+              { title: 'CQC location ID', w: 0.17 },
+              { title: 'Registered manager', w: 0.25 },
+              { title: 'CQC rating', w: 0.16 },
+            ],
+            svc.locations.map((loc) => [
+              { text: loc.name, bold: true, sub: loc.address ?? undefined },
+              { text: loc.cqcLocationId ?? '-' },
+              {
+                text: loc.registeredManagers.length
                   ? loc.registeredManagers.join(', ')
                   : 'Not recorded',
-              ],
-              ['Nominated individual', loc.nominatedIndividual ?? ''],
-              ['Regulated activities', loc.regulatedActivities.join(', ')],
-              ['Service types', loc.serviceTypes.join(', ')],
-              ['Registered since', ukDate(loc.registeredSince)],
-              ['Latest CQC rating', loc.rating ?? 'Not recorded'],
-            ],
-            L,
-            W,
-            120,
+                colour: loc.registeredManagers.length ? undefined : C.amber,
+              },
+              {
+                text: loc.rating ?? 'Not recorded',
+                colour: loc.rating ? undefined : C.muted,
+              },
+            ]),
           );
-          doc.y += 8;
-        }
       }
       const kd = pack.keyData;
       if (kd) {
+        // Key data on its own page, so its table is not split.
+        if (svc) doc.addPage();
         heading(
           'Key data',
           `${ukDate(kd.from)} to ${ukDate(kd.to)} (the last 12 months). Counts only, no names.`,
           120,
         );
-        for (const g of kd.groups) {
-          label(g.title, 40 + g.figures.length * 18);
-          for (const f of g.figures) {
-            const noteX = L + 250;
-            const noteW = R - noteX;
-            const h =
-              Math.max(f.note ? heightOf(f.note, false, 9, noteW) : 0, 12) + 6;
-            ensure(h);
-            const ry = doc.y;
-            font(false, 9.5, C.body);
-            put(f.label, L + 8, ry + 2, { width: 160 });
-            font(true, 10.5, C.ink);
-            put(f.value, L + 175, ry + 1, { width: 70 });
-            if (f.note) {
-              font(false, 9, C.muted);
-              put(f.note, noteX, ry + 2.5, { width: noteW, lineGap: 1.5 });
-            }
-            rule(ry + h);
-            doc.y = ry + h + 2;
-          }
-          doc.y += 8;
-        }
+        grid(
+          [
+            { title: 'Figure', w: 0.42 },
+            { title: 'Number', w: 0.16, align: 'center' },
+            { title: 'Detail', w: 0.42 },
+          ],
+          kd.groups.flatMap((g): GridRow[] => [
+            { group: g.title },
+            ...g.figures.map((f) => [
+              { text: f.label },
+              { text: f.value, bold: true },
+              { text: f.note ?? '-', colour: f.note ? C.body : C.muted },
+            ]),
+          ]),
+        );
         if (kd.hidden.length) {
           const t = `Not shown, because your account cannot see them: ${kd.hidden.join(', ')}.`;
           font(false, 8.5, C.muted);
@@ -831,67 +808,36 @@ function renderPack(
       'Contents',
       'Every quality statement in this pack, with what it holds and the page it starts on.',
     );
-    const cc = {
-      no: L + 8,
-      title: L + 40,
-      ev: L + 290,
-      pol: L + 345,
-      mock: L + 400,
-      page: R - 40,
-    };
-    tableHead([
-      ['No.', cc.no],
-      ['Quality statement', cc.title],
-      ['Evidence', cc.ev],
-      ['Policies', cc.pol],
-      ['Mock score', cc.mock],
-      ['Page', cc.page, 32],
-    ]);
-    let zebra = false;
-    for (const g of groups) {
-      ensure(40);
-      const gy = doc.y + 6;
-      font(true, 10, C.brand);
-      put(g.title, cc.no, gy);
-      doc.y = gy + 18;
-      for (const s of g.statements) {
-        const th = heightOf(s.title, false, 9.5, cc.ev - cc.title - 10);
-        const rowH = Math.max(20, th + 9);
-        ensure(rowH);
-        const ry = doc.y;
-        if (zebra) doc.rect(L, ry, W, rowH).fill(C.soft);
-        zebra = !zebra;
-        font(true, 9.5, C.muted);
-        put(s.number, cc.no, ry + 5);
-        font(false, 9.5, C.ink);
-        put(s.title, cc.title, ry + 5, {
-          width: cc.ev - cc.title - 10,
-          lineGap: 1.5,
-        });
-        if (s.evidence.length) {
-          font(false, 9.5, C.body);
-          put(String(s.evidence.length), cc.ev, ry + 5);
-        } else {
-          font(true, 9, C.amber);
-          put('None', cc.ev, ry + 5);
-        }
-        font(false, 9.5, C.body);
-        put(
-          pack.includesPolicies ? String(s.policies.length) : '-',
-          cc.pol,
-          ry + 5,
-        );
-        put(
-          s.mock ? `${s.mock.score} of ${s.mock.outOf}` : '-',
-          cc.mock,
-          ry + 5,
-        );
-        const p = pages?.get(s.number || s.code);
-        font(true, 9.5, C.ink);
-        put(p ? String(p) : '', cc.page, ry + 5, { width: 32, align: 'right' });
-        doc.y = ry + rowH;
-      }
-    }
+    grid(
+      [
+        { title: 'No.', w: 0.08 },
+        { title: 'Quality statement', w: 0.47 },
+        { title: 'Evidence', w: 0.12, align: 'center' },
+        { title: 'Policies', w: 0.11, align: 'center' },
+        { title: 'Mock score', w: 0.13, align: 'center' },
+        { title: 'Page', w: 0.09, align: 'center' },
+      ],
+      groups.flatMap((g): GridRow[] => [
+        { group: g.title },
+        ...g.statements.map((st) => {
+          const page = pages?.get(st.number || st.code);
+          return [
+            { text: st.number, colour: C.muted },
+            { text: st.title },
+            st.evidence.length
+              ? { text: String(st.evidence.length) }
+              : { text: 'None', bold: true, colour: C.amber },
+            { text: pack.includesPolicies ? String(st.policies.length) : '-' },
+            {
+              text: st.mock ? `${st.mock.score} of ${st.mock.outOf}` : '-',
+              colour: st.mock ? SCORE_COLOURS[st.mock.score] : C.muted,
+              bold: !!st.mock,
+            },
+            { text: page ? String(page) : '', bold: true },
+          ];
+        }),
+      ]),
+    );
 
     // ─── Statements ───────────────────────────────────────────────────────
     for (const g of groups) {
